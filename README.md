@@ -1,2 +1,3 @@
 # finalProject
-The repository for our final project. Camel code is great.
+The repository for our final project. 
+# Camel code is great.
