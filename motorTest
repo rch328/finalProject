@@ -1,0 +1,16 @@
+int rightMotor = 9;
+void setup() {
+  // put your setup code here, to run once:
+
+pinMode(rightMotor, OUTPUT);
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+    //pin 5
+    analogWrite(rightMotor, 75);
+    delay(2000);
+    digitalWrite(rightMotor, LOW);
+    delay(2000);
+    
+}
