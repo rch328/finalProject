@@ -20,5 +20,3 @@ Tracking:
 	Use tracking sensor: 7 pts
 	Store path in data structure: 10 pts
 	Retrace path: 8 pts
-
-
