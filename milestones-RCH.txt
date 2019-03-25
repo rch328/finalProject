@@ -1,3 +1,24 @@
 Milestones for Rachel
 
 
+Hours:
+
+Lab:
+25 March 2019 - 2 hours - Writing rubric, coding base for temperature sensor (can't do more than the base without the sensor, which is in Chandler's house)
+
+Not Lab:
+13 March 2019 - 1 hour - Wiring, got motor to spin in one direction
+25 March 2019 - 1 hour - Figuring out how temperature sensor works (before lab)
+
+
+Rubric:
+Temperature:
+	Find temperature value from sensor: 5 pts 
+	Activate pin based on temperature value: 10 pts (this might be a fan later)
+
+Tracking:
+	Use tracking sensor: 7 pts
+	Store path in data structure: 10 pts
+	Retrace path: 8 pts
+
+
