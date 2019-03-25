@@ -1,7 +1,7 @@
 # finalProject
 The repository for our final project. 
 # Camel code is great.
-Corbin, Nickleberry  
+Corbin, Nick  
 Harris, Rachel  
-Lampe, Chandler  
+Champe, Landler  
 Phillips, Madeline  
