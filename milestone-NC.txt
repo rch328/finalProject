@@ -1,3 +1,9 @@
-Put our milestones here lol
+Nick Corbin Milestones
+
+Finish basic motor code and get motors working
+
+
+15 points - Finish motor code for motor_code.ino so that basic movements can be accomplished
+25 points - Use H bridge to wire the analog output of the Arduino to the motors so that motor functions will work
 
 
