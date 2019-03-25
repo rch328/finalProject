@@ -7,96 +7,94 @@
   http://www.arduino.cc/en/Tutorial/Sweep
 */
 
-#include <Servo.h>
-#include <NewPing.h>
+//We can use the width to calculate how fast the motors have to turn
+int width;
+int leftMotors = 8;
+int rightMotors = 9;
+//This is a global variable, delete later
+int movespeed = 50;
+//Magicalconstant is when I figure out the math for the turning arc for the wheels
+//It will be something like radius of turn plus the width of the robot between 
+int magicalconstant = 1.25;
+//This is whatever equation i think that we convert to linear velocity I think
+int turnvelocity = movespeed * magicalconstant;
 
-//Tell the Arduino where the sensor is hooked up
-NewPing sonar(8, 9);
+/*
+int frontLeftMotor = 6;
+int frontRightMotor = 7;
+int rearLeftMotor = 8;
+int rearRightMotor = 9;
+*/
 
-Servo myservo;  // create servo object to control a servo
-// twelve servo objects can be created on most boards
-
-int pos = 90;    // variable to store the servo position
-int inches;
-
-void look(void);
+//void moveRobot(string direction, int speed);
 
 void setup() {
-  myservo.attach(7);  // attaches the servo on pin 9 to the servo object
   Serial.begin(9600);
-  pinMode(2, INPUT);
-  pinMode(5, OUTPUT);
+  pinMode(leftMotors, OUTPUT);
+  pinMode(rightMotors, OUTPUT);
 }
 
 void loop() {
-
-  inches = sonar.ping_in();
-  printdata();
-  if (inches < 10) {
-    look();
-  }
-  //check();
-  digitalWrite(5,HIGH);
-  delay(5000);
-  digitalWrite(5,LOW);
-  delay(5000);
-
-
-
+  String command;
+  if(Serial.available()){
+    command = Serial.readStringUntil('\n');
+    moveRobot(command, movespeed);
+  }  
 }
 
-
-void look(void) {
-
-  for (pos = 90; pos <= 160; pos += 1) { // goes from 0 degrees to 180 degrees
-    // in steps of 1 degree
-    myservo.write(pos);
-    inches = sonar.ping_in();
-    check();
-    printdata();
-    // tell servo to go to position in variable 'pos'
-    delay(15);                       // waits 15ms for the servo to reach the position
-  }
-
-
-  for (pos = 160; pos >= 20      ; pos -= 1) { // goes from 0 degrees to 180 degrees
-    // in steps of 1 degree
-    myservo.write(pos);
-    inches = sonar.ping_in();
-    printdata();
-    check();
-    // tell servo to go to position in variable 'pos'
-    delay(15);                       // waits 15ms for the servo to reach the position
-  }
-  delay(15);
-
-  for (pos = 20; pos <= 90; pos += 1) { // goes from 0 degrees to 180 degrees
-    // in steps of 1 degree
-    myservo.write(pos);
-    inches = sonar.ping_in();
-    printdata();
-    check();
-    // tell servo to go to position in variable 'pos'
-    delay(15);                       // waits 15ms for the servo to reach the position
-  }
-
-
-
-  // waits 15ms for the servo to reach the position
-}
-void printdata() {
-  Serial.print(inches);
-  Serial.print(" in.");
-  Serial.print("\n");
-
-
-}
-
-void check() {
-  /*
-    if(inches < 10){
-    digitalWrite(5,HIGH);
+//In case we need the CS 130 lab delay function, idk if we do though
+void myDelay(int ms){
+  int start_ms = millis();
+  int current_ms;
+  while(true){
+    current_ms = millis();
+    //Do stuff
+    if(current_ms >= (start_ms+ms)){
+      break;
     }
-    else{
-    digitalWrite(5,LOW);*/
+  }
 }
+
+//We might have to change backwards depending on how the h bridge works
+void moveRobot(String movement, int velocity){
+  analogWrite(leftMotors, 0);
+  analogWrite(rightMotors, 0);
+  delay(100);
+  
+
+  if(movement == "forward"){
+      analogWrite(leftMotors, velocity);
+      analogWrite(rightMotors, velocity);
+  }
+  else if(movement == "backward"){
+      //This will definitely have to change, analog write doesn't take negative values, we change the polarity of the signal through the motors with the h bridge
+      analogWrite(leftMotors, -velocity);
+      analogWrite(rightMotors, -velocity);
+  }
+  else if(movement == "left"){
+      //This will definitely have to change, analog write doesn't take negative values, we change the polarity of the signal through the motors with the h bridge
+      analogWrite(leftMotors, velocity);
+      analogWrite(rightMotors, turnvelocity);
+  }
+  else if(movement == "right"){
+      //This will definitely have to change, analog write doesn't take negative values, we change the polarity of the signal through the motors with the h bridge
+      analogWrite(leftMotors, turnvelocity);
+      analogWrite(rightMotors, velocity);
+  }
+  else if(movement == "hardleft"){
+      //This will definitely have to change, analog write doesn't take negative values, we change the polarity of the signal through the motors with the h bridge
+      analogWrite(leftMotors, velocity);
+      analogWrite(rightMotors, -velocity);
+  }
+  else if(movement == "hardright"){
+      //This will definitely have to change, analog write doesn't take negative values, we change the polarity of the signal through the motors with the h bridge
+      analogWrite(leftMotors, -velocity);
+      analogWrite(rightMotors, velocity);
+  }
+  else if(movement == "stop"){
+      //This will definitely have to change, analog write doesn't take negative values, we change the polarity of the signal through the motors with the h bridge
+      analogWrite(leftMotors, 0);
+      analogWrite(rightMotors, 0);
+  }
+}
+
