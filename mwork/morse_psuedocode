@@ -1,0 +1,66 @@
+Establish library of letters and numbers if display isn't smart
+Establish library of morse to alphanumeric
+
+1. The length of a dot is one unit
+2. 1 dash = 3 dots
+3. The space between parts of same letter is one unit
+4. The space between letters is three units
+5. The space between words is seven units
+
+The program will not only need to gague the length of the button presses, it will also need to gague the length between button presses. Acceptable ranges will need to be established.
+
+The program will not end until it recieves a fullstop signal. This also means that the program will only handle one sentence at a time.
+
+The program will have four boolean variables:
+inLetter (still working on same letter)
+inWord (between letters)
+inSentence (between words)
+These will measure the space between button presses to determine how to handle the next input. As time thresholds are passed, the previous variable will be set to false while the new one is set to true. For example:
+	// button is released
+	inLetter = true;
+	// over three units of time pass
+	inLetter = false;
+	inWord = true;
+	// over seven units of time pass
+	inWord = false;
+	inSentence = true;
+
+Psuedocode for program structure:
+initialize time
+string word;
+// get first word
+// print word to display
+while(word != fullstop){
+	// read in next word
+	while(reading in){
+		// keep track of time somehow. Determine how I will assess time units for spacing
+		// check time at the beginning of this while loop every time to determine inLetter, inWord, or inSentence
+		if(inLetter){
+			// keep reading input as in same letter
+			// once finished, returns a variable that contains a complete letter
+		}
+		else if(inWord){
+			// add previous letter to word variable
+			// start recognizing new letter
+		}
+		else if(inSentence){
+			// print previous word and clear variable
+			// start recognizing new word
+
+		}
+	}
+}
+// print fullstop
+// end program
+
+CONSIDER MAKING LETTER COMPOSITION FUNCTION
+
+
+
+
+
+
+
+
+
+
