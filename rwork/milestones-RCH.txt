@@ -1,0 +1,39 @@
+Milestones for Rachel
+
+
+Hours:
+
+Lab:
+25 March 2019 - 2 hours - Writing rubric, coding base for temperature sensor (can't do more than the base without the sensor, which is in Chandler's house)
+
+Not Lab:
+13 March 2019 - 1 hour - Wiring, got motor to spin in one direction
+25 March 2019 - 1 hour - Figuring out how temperature sensor works (before lab)
+25 March 2019 - 1 hour - Changing plans
+27 March 2019 - 2 hours - CAD up elevator presser, preliminary elevator code, more work on temperature sensor
+
+Rubric:
+
+Temperature Mechanism: 19 points
+	Find temperature value from sensor: 7 pts 
+	Analyze retrieved value: 3 pts
+	Turn on fan based on analyzation: 9 pts
+
+Elevator Mechanism: 15 points
+	Code motor to raise arm: 9 pts
+	Code servo to push button: 6 pts
+
+Hardware Aspect of Robot: 6 points
+	Build drive train: 2 pts
+	Build arm: 3 pts
+	Attach fan: 1 pt
+
+
+Report of Challenge
+
+	This challenge was fine. I overshot on the tracker, and thus am not as far along on the other things as I'd like to be. 
+	The temperature and elevator will probably be the only things I code for this project, since I'm the one building and designing
+	the physical robot. Brent said that was okay. Thus, I'm not quite done with the code, but it's coming along. I'm not sure what
+	"[a] short report on how this challenge went" entails... I think the project's going well. Robots are fun to build, so it doesn't
+	really seem like work.
+	
