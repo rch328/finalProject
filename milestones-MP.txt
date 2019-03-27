@@ -4,6 +4,12 @@ Morse code to text converter
 
 This program will accept input in the form of the short and long button presses of morse code and convert this input to alphanumeric data, which will be output to the display. The button and display are mounted to our arduino.
 
+This is my challenge goal:
+ __/20 Determine button press and release
+ __/20 Determine difference between "dot" or "dash"
+Total: __/40
+
+This is my project goal:
  __/10 Determine whether button press was a "dot" or "dash"
  __/10 Funnel input data from button to output display (does not need to be correct, but does need to be consistent)
  __/10 Convert input button patterns to letters. Also recognize invalid dot/dash combinations
