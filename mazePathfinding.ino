@@ -2,7 +2,7 @@
 #include <set>
 #include <vector>
 
-//So let me get this straight, maps are part of the STL but vectors are NOT?
+//So let me get this straight, maps are part of the Arduino STL but vectors are NOT?
 //Update, this ain't good chief
 //We need very precise movement data, because if we are off, then this will be screwed.
 
