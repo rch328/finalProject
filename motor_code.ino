@@ -11,6 +11,8 @@
 int width;
 int leftMotors = 8;
 int rightMotors = 9;
+int eleMotor = 7; //elevator motor
+
 //This is a global variable, delete later
 int movespeed = 50;
 //Magicalconstant is when I figure out the math for the turning arc for the wheels
@@ -53,6 +55,22 @@ void myDelay(int ms){
       break;
     }
   }
+}
+
+//Elevator Move function
+void movElevator(string movement){
+	int d=1; //vertical distance to move (meters) **NEEDS TO BE MEASURED!!**
+	int v=1; //velocity: we want the elevator to be kind of slow, doesn't need variable speed (m/s)
+	int t=(d/v)*1000; //time to go distance (calculated) (milliseconds)
+
+	analogWrite(eleMotor, 0);
+	delay(100);
+
+	if(movement == "up"){
+		analogWrite(eleMotor, v);
+		delay(t);
+		analogWrite(eleMotor, 0);
+	}
 }
 
 //We might have to change backwards depending on how the h bridge works
