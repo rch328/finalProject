@@ -4,25 +4,29 @@
 //When wall is hit, stop and raise elevator.
 
 //Arduino ports:
-int leftMotors = 8;
-int rightMotors = 9;
-int eleMotor = 7;
+int width;
+int leftMotorBow = 3;//Bow: forward, Aft:back
+int leftMotorAft = 4;
+int rightMotorBow = 5;
+int rightMotorAft = 6;
+int eleMotorUp = 7; //elevator motor 
+int eleMotorDown = 2;
 
 //Constants:
-int moveSpeed = 50; //units?? Change to ft/sec please
+int moveSpeed = 175; //units?? Change to m/sec please
 int k = 1.25;//"magical constant" no clue what this does
 int turnvelocity = moveSpeed*k;
 
 void setup() {
   Serial.begin(9600);
   //declare motor pins
-  pinMode(leftMotors, OUTPUT);
-  pinMode(rightMotors, OUTPUT);
-  pinMode(eleMotor, OUTPUT);
+  pinMode(leftMotorBow, OUTPUT);
+  pinMode(rightMotorBow, OUTPUT);
+  pinMode(eleMotorUp, OUTPUT);
 
-  //declare distance sensor
-  pinMode(2, INPUT);
-  pinMode(5, OUTPUT);
+  //declare distance sensor: THIS NEEDS WORK
+  //pinMode(2, INPUT);
+  //pinMode(5, OUTPUT);
   
 }
 
@@ -30,11 +34,13 @@ void loop() {
   // put your main code here, to run repeatedly:
   
   moveRobot("backward", moveSpeed);
-  delay(3048/moveSpeed);//t=d/v
-  moveRobot("left", moveSpeed);
+  delay(3048/*moveSpeed*/);//t=d/v
+  moveRobot("hardLeft", moveSpeed);
+  delay(500);
   moveRobot("forward", moveSpeed);
-  delay(7620/moveSpeed);
-  moveRobot("right", moveSpeed);
+  delay(7620/*moveSpeed*/);
+  moveRobot("hardRight", moveSpeed);
+  delay(500);
   moveRobot("forward", moveSpeed/2);
   //Stop when distance sensor detects bumping into walls
  /* if(){
@@ -42,7 +48,10 @@ void loop() {
     //raise elevator
     movElevator("up");
   }*/
-  
+
+  delay(1000);
+  moveRobot("stahp", moveSpeed);
+  delay(2000);
 }
 //Elevator Move function
 void movElevator(const String movement){
@@ -50,59 +59,56 @@ void movElevator(const String movement){
   int v=1; //velocity: we want the elevator to be kind of slow, doesn't need variable speed (m/s)
   int t=(d/v)*1000; //time to go distance (calculated) (milliseconds)
 
-  analogWrite(eleMotor, 0);
+  analogWrite(eleMotorUp, 0);
   delay(100);
 
   if(movement == "up"){
-    analogWrite(eleMotor, v);
+    analogWrite(eleMotorUp, v);
     delay(t);
-    analogWrite(eleMotor, 0);
+    analogWrite(eleMotorUp, 0);
   }else if(movement == "down"){
-    analogWrite(eleMotor, -v);
+    analogWrite(eleMotorDown, v);
     delay(t);
-    analogWrite(eleMotor, 0);
+    analogWrite(eleMotorDown, 0);
   }
 }
 
 //We might have to change backwards depending on how the h bridge works
 void moveRobot(String movement, int velocity){
-  analogWrite(leftMotors, 0);
-  analogWrite(rightMotors, 0);
+  analogWrite(leftMotorBow, 0);
+  analogWrite(rightMotorBow, 0);
+  analogWrite(leftMotorAft, 0);
+  analogWrite(rightMotorAft, 0);
   delay(100);
   
-
   if(movement == "forward"){
-      analogWrite(leftMotors, velocity);
-      analogWrite(rightMotors, velocity);
+      analogWrite(leftMotorBow, velocity);
+      analogWrite(rightMotorBow, velocity);
   }
   else if(movement == "backward"){
-      //This will definitely have to change, analog write doesn't take negative values, we change the polarity of the signal through the motors with the h bridge
-      analogWrite(leftMotors, -velocity);
-      analogWrite(rightMotors, -velocity);
-  }
+      analogWrite(leftMotorAft, velocity);
+      analogWrite(rightMotorAft, velocity);
+  }//We need a way to make the robot turn 90 degrees and then stop, not just by timing how long it takes to make a 90 degree turn.
   else if(movement == "left"){
-      //This will definitely have to change, analog write doesn't take negative values, we change the polarity of the signal through the motors with the h bridge
-      analogWrite(leftMotors, velocity);
-      analogWrite(rightMotors, turnvelocity);
+      analogWrite(leftMotorBow, velocity);
+      analogWrite(rightMotorBow, turnvelocity);
   }
   else if(movement == "right"){
-      //This will definitely have to change, analog write doesn't take negative values, we change the polarity of the signal through the motors with the h bridge
-      analogWrite(leftMotors, turnvelocity);
-      analogWrite(rightMotors, velocity);
+      analogWrite(leftMotorBow, turnvelocity);
+      analogWrite(rightMotorBow, velocity);
   }
   else if(movement == "hardleft"){
-      //This will definitely have to change, analog write doesn't take negative values, we change the polarity of the signal through the motors with the h bridge
-      analogWrite(leftMotors, velocity);
-      analogWrite(rightMotors, -velocity);
+      analogWrite(leftMotorBow, velocity);
+      analogWrite(rightMotorAft, velocity);
   }
   else if(movement == "hardright"){
-      //This will definitely have to change, analog write doesn't take negative values, we change the polarity of the signal through the motors with the h bridge
-      analogWrite(leftMotors, -velocity);
-      analogWrite(rightMotors, velocity);
+      analogWrite(leftMotorAft, velocity);
+      analogWrite(rightMotorBow, velocity);
   }
   else if(movement == "stahp"){
-      //This will definitely have to change, analog write doesn't take negative values, we change the polarity of the signal through the motors with the h bridge
-      analogWrite(leftMotors, 0);
-      analogWrite(rightMotors, 0);
+      analogWrite(leftMotorBow, 0);
+      analogWrite(leftMotorAft, 0);
+      analogWrite(rightMotorBow, 0);
+      analogWrite(rightMotorAft, 0);
   }
 }
