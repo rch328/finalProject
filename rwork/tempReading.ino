@@ -1,4 +1,4 @@
-//This is the file with the code to read temperatures
+/This is the file with the code to read temperatures
 
 //Author : Rachel Harris
 
@@ -27,10 +27,12 @@ void loop(){
 		fanStatus = sts35.readTemperature();
 
 	//if fan is off, call function
+  /*
 		if(digitalRead(5)==LOW){
 			fanStatus = temp(tempVal);
 		}
-
+*/
+Serial.print(fanStatus);
 }
 
 //Function to read the temperature
@@ -47,5 +49,3 @@ bool temp(int tmp){
 	}
 	return false;
 }
-
-
