@@ -1,4 +1,5 @@
 #include <ArduinoSTL.h>
+//#include <NewPing.h>
 //#include <vector>
 #include <map>
 #include <set>
@@ -10,6 +11,15 @@
 //We need very precise movement data, because if we are off, then this will be screwed.
 
 //So many edge cases, I want to make sure this is correct but the simpler the better, but I don't know how simple I can make this.
+
+//Sirvoz evntually bby ;)
+//NewPing sonar(8, 9);
+//NewPing sonar(8, 9);
+//NewPing sonar(8, 9);
+
+
+//We have to use global variables because Arduino sucks
+bool firstRun = true;
 
 struct Coord{
   int x;
@@ -23,6 +33,7 @@ struct SensorData{
   int sonarFront;
   int betweenDistance;
   Coord location;
+  double turns;
 };
 
 class Node{
@@ -89,12 +100,23 @@ class Maze{
 
   //Basically cout
   void clout();
-    
+
+  //void ertoerhgeori(Maze &why);
+
+  //Makes the thing travel backwards
+  void backwards();
+
+  void sensorCheck(SensorData &data);
+  
   private:
     void letsMakeADecision(Node *currentNode);
     Coord mainLocation;
     Node *mainNode;
     Node *goal;
+    char currentDirection;
+    //Is M_PI PI?
+    //int wheelDiameter = 10 * M_PI;
+
   
 };
 
@@ -102,6 +124,17 @@ Maze::Maze(Node *start){
   mainLocation.x=0;
   mainLocation.y=0;
   mainNode = start;
+  currentDirection = 's';
+}
+
+void Maze::backwards(){
+   //Node *temp = currentNode;
+   Node *temp = mainNode;
+   //Put adjancency list checking code
+   while(temp != nullptr && numBranches(temp) < 2){
+      temp->possible = false;
+      temp = temp->backedge;
+   }
 }
 
 //Eliminates the path until we get to a node with multiple options
@@ -119,14 +152,10 @@ int Maze::numBranches(Node *currentNode){
   return temp;
 }
 
-
-
 //Refreshes data by reading sensor inputs
 //We might not need this, depending on if we put this in void loop
 void refreshSensorData(SensorData &data){
-
-
-  
+  //Measure sensor input and update class?!
 }
 
 void Maze::addNode(int distance, SensorData &data, List &list){
@@ -164,38 +193,52 @@ void Maze::addNode(int distance, SensorData &data, List &list){
   //Once we add the node, we can make a decision on where we should go
 }
 
+//This is called whenever we need to go to a path
 void Maze::letsMakeADecision(Node *currentNode){
   std::set <Node *>::iterator literator;
   for(literator = adj[currentNode].begin(); literator != adj[currentNode].end(); literator++){
-    //Cout
+    Node *temp = *literator;
   }
 }
 
 //We check if certain logic is true, if so, we need to add a new node and make decisions.
 //We need to also check to make sure we are at the right nodes etc.
-void sensorCheck(SensorData &data){
+void Maze::sensorCheck(SensorData &data){
   //Oh crap, we have a sensor that is open and huge.
   //Therefore, we will have to add a node probably
+
   int sensorSum=0;
   int errorConstant = 8;
   List list;
   bool frontEnd;
+
   
+  //If we reach a wall
   //Divide by 2 because it will approach wall, for extra confidence
-  if(data.sonarRight < errorConstant/2){
+  if(data.sonarFront < errorConstant/2){
      list.center = true;
   }
+
   
-  if(data.sonarLeft < errorConstant){
+  if(data.sonarLeft > errorConstant){
     list.left = true;
+    sensorSum++;
   }
-  if(data.sonarRight < errorConstant){
+  if(data.sonarRight > errorConstant){
     list.right = true; 
+    sensorSum++;
   }
 
-  if(sensorSum || list.center){
-    addNode(0, data, list);
+  //If we are at a dead end, backtrace
+  if(!sensorSum && list.center){
+    //backwards();
   }
+
+  //If the front wall exists but there are paths
+  if(sensorSum || list.center){
+    //maize.addNode(0, data, list);
+  }
+
   
 }
 
@@ -225,13 +268,42 @@ void setup(){
   Maze *maze = new Maze(headDaddy);
 }
 
-void loop() {
-  // put your main code here, to run repeatedly:
-  SensorData data;
+void loop(){
+
+  /*
+  SensorData data;//Maze maze;
   refreshSensorData(data);
+  
+  // put your main code here, to run repeatedly:
+  if(firstRun){
+    Node *headDaddy = new Node(0, data, nullptr, 'b');
+    Maze *maze = new Maze(headDaddy);
+    firstRun = false;
+    maze->pathEliminator(headDaddy);
+  }
+  
+  //maze->pathEliminator(headDaddy);
+  
   sensorCheck(data);
   myDelay(10);
   //maze->addNode(7, data);
+  */
+
+  //This is one of the most evil things that I will ever do.
+
+  SensorData data;//Maze maze;
+  refreshSensorData(data);
+  
+
+  Node *headDaddy = new Node(0, data, nullptr, 'b');
+  Maze *maze = new Maze(headDaddy);
+    
+  while(1){
+    refreshSensorData(data);
+    maze->sensorCheck(data);
+    myDelay(10);
+  }
+  
 }
 
 //In case we need the CS 130 lab delay function, idk if we do though
@@ -247,14 +319,18 @@ void myDelay(int ms){
   }
 }
 
-/*
+//Outputs node details
 void Maze::clout(){
-  map <Node *, std::set<Node *>>::iterator literator;
-  set <Node *>::iterator siterator;
+  std::map <Node *, std::set<Node *>>::iterator literator;
+  std::set <Node *>::iterator siterator;
   for(literator = adj.begin(); literator != adj.end(); literator++){
-    siterator = literator->
+    siterator = literator->second.begin();
+    for(; siterator != literator->second.end(); siterator++){
+      Node *temp = *siterator;
+      //std::cout << " " << *siterator->distance << endl;
+      std::cout << temp->distance << "  " << temp->direction << std::endl;
+    }
   }
-  
 }
-*/
+
 
