@@ -1,10 +1,15 @@
 #include <ArduinoSTL.h>
-//#include <NewPing.h>
+#include <NewPing.h>
 //#include <vector>
 #include <map>
 #include <set>
 #include <stack>
 
+//Pg 202
+
+NewPing leftSonar(8, 9);
+NewPing sonar(10,11);
+NewPing rightSonar(12, 13);
 
 int width;
 int leftMotorBow = 3;//Bow: forward, Aft:back
@@ -21,28 +26,24 @@ int eleMotorDown = 2;
 //So many edge cases, I want to make sure this is correct but the simpler the better, but I don't know how simple I can make this.
 
 //Sirvoz evntually bby ;)
-//NewPing sonar(8, 9);
-//NewPing sonar(8, 9);
-//NewPing sonar(8, 9);
-
 
 //We have to use global variables because Arduino sucks
 bool firstRun = true;
 
 
 struct Coord{
-  int x;
-  int y;
+  int x=0;
+  int y=0;
 };
 
 //We created SensorData class to be able to add/remove variables easily
 struct SensorData{
-  int sonarLeft;
-  int sonarRight;
-  int sonarFront;
-  int betweenDistance;
+  int sonarLeft=0;
+  int sonarRight=0;
+  int sonarFront=0;
+  int betweenDistance=0;
   Coord location;
-  double turns;
+  double turns=0;
 };
 
 class Node{
@@ -187,6 +188,9 @@ int Maze::numBranches(Node *currentNode){
 //We might not need this, depending on if we put this in void loop
 void refreshSensorData(SensorData &data){
   //Measure sensor input and update class?!
+  data.sonarLeft = leftSonar.ping_in();
+  data.sonarFront = sonar.ping_in(); 
+  data.sonarRight = rightSonar.ping_in();
 }
 
 void Maze::addNode(int distance, SensorData &data, List &list){
@@ -208,7 +212,7 @@ void Maze::addNode(int distance, SensorData &data, List &list){
     adj[goal].insert(newNode);
   }
 
-  if(list.left){
+  if(list.right){
     newNode = new Node(0, data, goal, 'r');
     adj[goal].insert(newNode);
   }
@@ -229,7 +233,11 @@ void Maze::letsMakeADecision(Node *currentNode){
   std::set <Node *>::iterator literator;
   for(literator = adj[currentNode].begin(); literator != adj[currentNode].end(); literator++){
     Node *temp = *literator;
-    moveRobot("hardleft", 50);
+    //moveRobot("hardleft", 175);
+    if(temp->possible){
+      moveRobot("hardleft", 175);
+      break;
+    }
   }
 }
 
@@ -289,14 +297,7 @@ void centerRobot(SensorData &data){
 }
 
 void setup(){
-  // put your setup code here, to run once:
-  SensorData data;
-  refreshSensorData(data);
-
-  //Construct our maze objects
-  Node *headDaddy = new Node(0, data, nullptr, 'b');
-  Maze *maze = new Maze(headDaddy);
-
+  
   pinMode(leftMotorBow, OUTPUT);
   pinMode(rightMotorBow, OUTPUT);
   pinMode(eleMotorUp, OUTPUT);
