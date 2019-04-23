@@ -89,21 +89,28 @@ void moveRobot(String movement, int velocity){
       analogWrite(leftMotorAft, velocity);
       analogWrite(rightMotorAft, velocity);
   }//We need a way to make the robot turn 90 degrees and then stop, not just by timing how long it takes to make a 90 degree turn.
-  else if(movement == "left"){
+  else if(movement == "right"){
       analogWrite(leftMotorBow, velocity);
       analogWrite(rightMotorBow, turnvelocity);
   }
-  else if(movement == "right"){
+  else if(movement == "left"){
       analogWrite(leftMotorBow, turnvelocity);
       analogWrite(rightMotorBow, velocity);
   }
-  else if(movement == "hardleft"){
+  else if(movement == "180"){
+    analogWrite(leftMotorBow, velocity);
+    analogWrite(rightMotorAft, velocity);
+    delay(600*2);
+  }
+  else if(movement == "hardRight"){//Turns 90 degrees right
       analogWrite(leftMotorBow, velocity);
       analogWrite(rightMotorAft, velocity);
+      delay(600);
   }
-  else if(movement == "hardright"){
+  else if(movement == "hardLeft"){//Turns 90 degrees left
       analogWrite(leftMotorAft, velocity);
       analogWrite(rightMotorBow, velocity);
+      delay(600);
   }
   else if(movement == "stahp"){
       analogWrite(leftMotorBow, 0);
