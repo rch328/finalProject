@@ -1,6 +1,5 @@
 #include <ArduinoSTL.h>
 #include <NewPing.h>
-//#include <vector>
 #include <map>
 #include <set>
 #include <stack>
@@ -11,7 +10,7 @@ NewPing leftSonar(8, 9);
 NewPing sonar(10,11);
 NewPing rightSonar(12, 13);
 
-int width;
+//Motor port constants
 int leftMotorBow = 3;//Bow: forward, Aft:back
 int leftMotorAft = 4;
 int rightMotorBow = 5;
@@ -19,21 +18,21 @@ int rightMotorAft = 6;
 int eleMotorUp = 7; //elevator motor 
 int eleMotorDown = 2;
 
-//So let me get this straight, maps are part of the STL but vectors are NOT?
-//Update, this ain't good chief
-//We need very precise movement data, because if we are off, then this will be screwed.
-
-//So many edge cases, I want to make sure this is correct but the simpler the better, but I don't know how simple I can make this.
-
-//Sirvoz evntually bby ;)
-
 //We have to use global variables because Arduino sucks
 bool firstRun = true;
 
+//Prevents Multiple Nodes From Being Added Until We Have Finished Our Decision
+bool preventMultipleNodes = true;
 
+//What is the diameter of our distance wheel?
+
+double diameter;
+double wheelCir = diameter * M_PI;
+
+//xy coords for the data
 struct Coord{
-  int x=0;
-  int y=0;
+  double x=0;
+  double y=0;
 };
 
 //We created SensorData class to be able to add/remove variables easily
@@ -41,9 +40,9 @@ struct SensorData{
   int sonarLeft=0;
   int sonarRight=0;
   int sonarFront=0;
-  int betweenDistance=0;
-  Coord location;
-  double turns=0;
+  //int betweenDistance=0;
+  //Coord location;
+  double turns=5;
 };
 
 class Node{
@@ -52,7 +51,7 @@ class Node{
   Node(int distance, SensorData &data, Node *currNode, char direction);
 
   //How far from previous node
-  int distance;
+  double distance;
 
   //What direction relative from previous node
   // (current)       <-(previous)
@@ -90,7 +89,7 @@ Node::Node(int distance, SensorData &data, Node *currNode, char direction){
   possible = true;
 
   //If we want x y coords
-  nodeLocation = data.location;
+  //nodeLocation = data.location;
   
   //Sets backedge to previous node
   backedge = currNode;
@@ -99,27 +98,13 @@ Node::Node(int distance, SensorData &data, Node *currNode, char direction){
   this->direction = direction;
 }
 
-bool errorApproximate(Coord &left, Coord &right){
-   //If the values are close enough that they are the same, return true.
-   //Else return false
-    
-   return true;
-}
-
 class Maze{
   public:
   
-  Maze(Node *start);
+  Maze(Node *start, Node *actualStart);
   std::map <Node *, std::set<Node *>> adj;
 
-  //Breadcrumb trail
-  //std::stack<Coord> path;
-
   std::stack<Node *> path;
-  
-  //Wait, using maps is the dumbest thing I have ever done. Why don't I just use a list lol
-  //std::map <int, std::vector<Node *>> xloc;
-  //std::map <int, std::vector<Node *>> yloc;
   
   //When our robot gets to a choice with options, add the options (which are Nodes)
   void addNode(int distance, SensorData &data, List &list);
@@ -133,8 +118,6 @@ class Maze{
   //Basically cout for the nodes
   void clout();
 
-  //void ertoerhgeori(Maze &why);
-
   //Makes the thing travel backwards
   void backwards();
 
@@ -146,16 +129,14 @@ class Maze{
     Node *mainNode;
     Node *goal;
     char currentDirection;
-    //Is M_PI PI?
-    int wheelDiameter = 10 * M_PI;
-
   
 };
 
-Maze::Maze(Node *start){
+Maze::Maze(Node *start, Node *actualStart){
   mainLocation.x=0;
   mainLocation.y=0;
   mainNode = start;
+  goal = actualStart;
   currentDirection = 's';
 }
 
@@ -185,47 +166,47 @@ int Maze::numBranches(Node *currentNode){
 }
 
 //Refreshes data by reading sensor inputs
-//We might not need this, depending on if we put this in void loop
 void refreshSensorData(SensorData &data){
-  //Measure sensor input and update class?!
   data.sonarLeft = leftSonar.ping_in();
   data.sonarFront = sonar.ping_in(); 
   data.sonarRight = rightSonar.ping_in();
 }
 
+//Adds the nodes from the current node depending on the the sensor data
 void Maze::addNode(int distance, SensorData &data, List &list){
-  //Check if we are near other node (Implement Later)
-  //If we are, this may not be an actual node, but a loop to a previous one
 
+  //Prevents this function from firing multiple times
+  //We want to make sure the vehicle is away before it tries to place a node again
+  preventMultipleNodes = false;
+
+  Serial.print("addNode");
   char temp;
   Node *newNode;
 
   goal->distance = distance;
-  
-  if(list.left){
+
+  //True means there is a wall, so we need to run when there isn't a wall
+  if(!list.left){
     newNode = new Node(0, data, goal, 'l');
     adj[goal].insert(newNode);
   }
 
-  if(list.center){
+  if(!list.center){
     newNode = new Node(0, data, goal, 'c');
     adj[goal].insert(newNode);
   }
 
-  if(list.right){
+  if(!list.right){
     newNode = new Node(0, data, goal, 'r');
     adj[goal].insert(newNode);
   }
 
-  
-  //mainNode = newNode;
-
   //Update coords
   path.push(goal);
 
+  //Once we add the node, we can make a decision on where the robot should go
   letsMakeADecision(goal);
   
-  //Once we add the node, we can make a decision on where we should go
 }
 
 //This is called whenever we need to go to a path
@@ -233,9 +214,27 @@ void Maze::letsMakeADecision(Node *currentNode){
   std::set <Node *>::iterator literator;
   for(literator = adj[currentNode].begin(); literator != adj[currentNode].end(); literator++){
     Node *temp = *literator;
-    //moveRobot("hardleft", 175);
-    if(temp->possible){
+    if(temp->possible && temp->direction == 'l'){
+      Serial.println("Left");
       moveRobot("hardleft", 175);
+      moveRobot("forward", 175);
+      delay(5000);
+      preventMultipleNodes = true;
+      break;
+    }
+    else if(temp->possible && temp->direction == 'c'){
+      Serial.println("Straight");
+      moveRobot("forward", 175);
+      delay(5000);
+      preventMultipleNodes = true;
+      break;
+    }
+    else if(temp->possible && temp->direction == 'r'){
+      Serial.println("Right");
+      moveRobot("hardright", 175);
+      moveRobot("forward", 175);
+      delay(5000);
+      preventMultipleNodes = true;
       break;
     }
   }
@@ -248,13 +247,13 @@ void Maze::sensorCheck(SensorData &data){
   //Therefore, we will have to add a node probably
 
   int sensorSum=0;
-  int errorConstant = 8;
+  int errorConstant = 6;
   List list;
   bool frontEnd;
 
   //If we reach a wall
   //Divide by 2 because it will approach wall, for extra confidence
-  if(data.sonarFront > errorConstant/2){
+  if(data.sonarFront < errorConstant/2){
      list.center = true;
   }
 
@@ -268,13 +267,17 @@ void Maze::sensorCheck(SensorData &data){
   }
   
   //If we are at a dead end, go backwards
-  if(!sensorSum && !list.center){
+  if(!sensorSum && list.center){
     //backwards();
   }
 
   //If the front wall exists but there are paths
   if(sensorSum || list.center){
-    addNode(0, data, list);
+    if(preventMultipleNodes){
+      //Let the robot move just a tiny bit
+      delay(200);
+      addNode(0, data, list);
+    }
   }
 
   //True if there is a wall
@@ -285,19 +288,17 @@ void Maze::sensorCheck(SensorData &data){
 void centerRobot(SensorData &data){
   int difference;
   difference = data.sonarLeft - data.sonarRight;
-  if(difference == 0){
-    //continue;
-  }
-  else if(difference > 1){
-    //Slight left
+
+  if(difference > 1){
+    realign(data.sonarRight, data.sonarLeft);
   }
   else if(difference < -1){
-    //Slight right
+    realign(data.sonarRight, data.sonarLeft);
   }
 }
 
 void setup(){
-  
+  Serial.begin(9600);
   pinMode(leftMotorBow, OUTPUT);
   pinMode(rightMotorBow, OUTPUT);
   pinMode(eleMotorUp, OUTPUT);
@@ -305,19 +306,37 @@ void setup(){
 
 void loop(){
 
-  //This is one of the most evil things that I will ever do.
-
-  SensorData data;//Maze maze;
+  //Creates and updates data
+  SensorData data;
   refreshSensorData(data);
   
-
+  //Creates 1st Pointer and Maze Object
   Node *headDaddy = new Node(0, data, nullptr, 'b');
-  Maze *maze = new Maze(headDaddy);
-    
+  Node *firstRealBro = new Node(0, data, headDaddy, 'c');
+
+  Maze *maze = new Maze(headDaddy, firstRealBro);
+
+  //Push first node onto path
+  maze->path.push(headDaddy);
+
+  moveRobot("forward", 175);
+  delay(500);
+
+  //We don't have anything that will stop it, it will hopefully just get out of the maze
   while(1){
     refreshSensorData(data);
+    
+    Serial.print("Left  ");
+    Serial.println(data.sonarLeft);
+    
+    Serial.print("Center  ");
+    Serial.println(data.sonarFront);
+    
+    Serial.print("Right  ");
+    Serial.println(data.sonarRight);
+    
     maze->sensorCheck(data);
-    myDelay(10);
+    myDelay(50);
   }
   
 }
@@ -348,4 +367,5 @@ void Maze::clout(){
     }
   }
 }
+
 
