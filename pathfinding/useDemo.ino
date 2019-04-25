@@ -11,14 +11,18 @@ void moveRobot(String movement, int velocity){
   analogWrite(leftMotorAft, 0);
   analogWrite(rightMotorAft, 0);
   delay(100);
+
+  //Floating point evil hack
+  
+  int rvelocity = velocity *1.17;
   
   if(movement == "forward"){
       analogWrite(leftMotorBow, velocity);
-      analogWrite(rightMotorBow, velocity);
+      analogWrite(rightMotorBow, rvelocity);
   }
   else if(movement == "backward"){
       analogWrite(leftMotorAft, velocity);
-      analogWrite(rightMotorAft, velocity);
+      analogWrite(rightMotorAft, rvelocity);
   }//We need a way to make the robot turn 90 degrees and then stop, not just by timing how long it takes to make a 90 degree turn.
   else if(movement == "right"){
       analogWrite(leftMotorBow, velocity);
@@ -63,16 +67,20 @@ void realign(int R, int L){//R and L are distance in inches
   if(R > L){
     //move distance R-L to the right.
       //to do this, drive with slightly greater velocity in left wheel -- test for values
-      analogWrite(leftMotorBow, 100+5*R);
-      analogWrite(rightMotorBow, 100+5*L);
+      //analogWrite(leftMotorBow, 100+2*R);
+      //analogWrite(rightMotorBow, 100+2*L);
+      analogWrite(leftMotorBow, 175+2*R);
+      analogWrite(rightMotorBow, 175+2*L);
       if(R == L){
       //moveRobot("stahp", 0);
       }
   }else {//else move slightly left
      //move distance L-R to the left.
       //to do this, drive with slightly greater velocity in right wheel -- test for values
-      analogWrite(leftMotorBow, 100+5*L);
-      analogWrite(rightMotorBow, 100+5*R);
+      //analogWrite(leftMotorBow, 100+2*L);
+      //analogWrite(rightMotorBow, 100+2*R);
+      analogWrite(leftMotorBow, 175+2*L);
+      analogWrite(rightMotorBow, 175+2*R);
       if(R == L){
       //moveRobot("stahp", 0);
       }
