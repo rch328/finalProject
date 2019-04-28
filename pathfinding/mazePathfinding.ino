@@ -3,10 +3,16 @@
 #include <map>
 #include <set>
 #include <stack>
-//#include <Tone.h>
 
-//Pg 202
+//Future to do:
+//Finish backwards function
+//Improve sensor accuracy
+//Implement distance for smarter pathfinding and maze representation.
+//Start by using https://www.sunfounder.com/learn/Super-Kit-V2-0-for-Arduino/lesson-14-rotary-encoder-super-kit.html
 
+//Some stuff is unfinished, but left in to demonstrate our goals for the project.
+
+//Declare instances of sensors
 NewPing leftSonar(8, 9);
 NewPing sonar(10,11);
 NewPing rightSonar(12, 13);
@@ -16,8 +22,8 @@ int leftMotorBow = 3;//Bow: forward, Aft:back
 int leftMotorAft = 4;
 int rightMotorBow = 5;
 int rightMotorAft = 6;
-int eleMotorUp = 7; //elevator motor 
-int eleMotorDown = 2;
+int eleMotorUp = 7; //elevator motor (changed to buzzer)
+
 
 //We have to use global variables because Arduino sucks
 bool firstRun = true;
@@ -26,11 +32,11 @@ bool finished = true;
 //Prevents Multiple Nodes From Being Added Until We Have Finished Our Decision
 bool preventMultipleNodes = true;
 
-//What is the diameter of our distance wheel?
+//What is the diameter of our distance wheel for distance tracking?
 double diameter;
 double wheelCir = diameter * M_PI;
 
-//xy coords for the data
+//xy coords for the location data
 struct Coord{
   double x=0;
   double y=0;
@@ -41,35 +47,32 @@ struct SensorData{
   int sonarLeft=0;
   int sonarRight=0;
   int sonarFront=0;
-  //int betweenDistance=0;
-  //Coord location;
   double turns=0;
 };
 
+//Node data structure
 class Node{
   public:
   //Constructor for nodes
   Node(int distance, SensorData &data, Node *currNode, char direction);
 
-  //How far from previous node
+  //How far are we from previous node?
   double distance;
 
-  //What direction relative from previous node
-  // (current)       <-(previous)
-  //The above example is left because it is
+  //What direction are relative from previous node
   char direction;
   
-  //I don't know if we need this yet
+  //Store xy location of node
   Coord nodeLocation;
   
   //Does this lead to a dead end? Yes or no
   bool possible;
 
-  //Backedge to original node.
+  //Backedge to previous/original node.
   Node *backedge;
 };
 
-//OOP is useful, so this is why I will be using it. In this essay I will....
+//This class stores which sensors have a wall in front of them, useful for addNode
 struct List{
   bool left=false;
   bool center=false;
@@ -79,7 +82,6 @@ struct List{
 
 //Node constructor
 Node::Node(int distance, SensorData &data, Node *currNode, char direction){
-  //This line might be dumb
   //Uses distance from previous node
   this->distance = distance;
   
@@ -98,8 +100,12 @@ Node::Node(int distance, SensorData &data, Node *currNode, char direction){
 
 class Maze{
   public:
-  
+
+  //Constructor
   Maze(Node *start, Node *actualStart);
+
+  //Adjancency list
+  //TODO make these private variables.
   std::map <Node *, std::set<Node *>> adj;
 
   //Stores what path we are on
@@ -115,7 +121,7 @@ class Maze{
   int numBranches(Node *currentNode);
 
   //Basically cout for the nodes
-  void clout();
+  void nodeOut();
 
   //Makes the thing travel backwards
   void backwards();
@@ -126,12 +132,16 @@ class Maze{
   private:
     void letsMakeADecision(Node *currentNode);
     Coord mainLocation;
+    //Current node
     Node *mainNode;
+    //Destination node
     Node *goal;
+    //Orientation of robot
     char currentDirection;
   
 };
 
+//Maze constructor
 Maze::Maze(Node *start, Node *actualStart){
   mainLocation.x=0;
   mainLocation.y=0;
@@ -153,7 +163,7 @@ void Maze::backwards(){
    pathEliminator(temp);
    
    if(finished){
-    //digitalWrite(7, HIGH);
+    digitalWrite(7, HIGH);
     delay(500);
     digitalWrite(7, LOW);
     finished = false;
@@ -172,6 +182,7 @@ void Maze::pathEliminator(Node *currentNode){
    }
 }
 
+//Returns number of paths for a node
 int Maze::numBranches(Node *currentNode){
   int temp = adj[currentNode].size();
   return temp;
@@ -190,13 +201,16 @@ void Maze::addNode(int distance, SensorData &data, List &list){
 
   goal->distance = distance;
 
-  //True means there is a wall, so we need to run when there isn't a wall
+  //True means there is not a wall for left and right
+  //TODO, change 0 to distance with distance sensor
   if(list.left){
     newNode = new Node(0, data, goal, 'l');
     Serial.println("insert left");
     adj[goal].insert(newNode);
   }
 
+  //Remember list.center is the exception
+  //True means we are at a wall, so we need to invert that
   if(!list.center){
     newNode = new Node(0, data, goal, 'c');
     Serial.println("insert straight");
@@ -225,6 +239,7 @@ void refreshSensorData(SensorData &data){
 }
 
 //This is called whenever we need to go to a path
+//It will pick a direction and go to there
 void Maze::letsMakeADecision(Node *currentNode){
   std::set <Node *>::iterator literator;
   for(literator = adj[currentNode].begin(); literator != adj[currentNode].end(); literator++){
@@ -239,7 +254,7 @@ void Maze::letsMakeADecision(Node *currentNode){
       delay(1000);
       //currentDirection = 'l';
       preventMultipleNodes = true;
-      break;
+     break;
     }
     else if(temp->possible && temp->direction == 'r'){
       Serial.println("Right");
@@ -268,48 +283,49 @@ void Maze::letsMakeADecision(Node *currentNode){
 //We check if certain logic is true, if so, we need to add a new node and make decisions.
 //We need to also check to make sure we are at the right nodes etc.
 void Maze::sensorCheck(SensorData &data){
-  //Oh crap, we have a sensor that is open and huge.
-  //Therefore, we will have to add a node probably
-
+  //If sensors are open, add a node!
   int sensorSum=0;
   int errorConstant = 5;
   List list;
   bool frontEnd;
 
-  //If we reach a wall
-  //Divide by 2 because it will approach wall, for extra confidence
+  //True if we reach a wall (This is different from left/right, opposite)
   if(data.sonarFront < errorConstant){
      list.center = true;
   }
 
+  //True if we aren't at a wall
   if(data.sonarLeft > errorConstant+8){
     list.left = true;
     sensorSum++;
   }
+
+  //True if we aren't at a wall
   if(data.sonarRight > errorConstant+8){
     list.right = true; 
     sensorSum++;
   }
   
-  //If we are at a dead end, go backwards
+  //If we are at a dead end and there are no openings, go backwards
   if(!sensorSum && list.center){
+    //We do need to update the node data before we call this function, but that will be done later
     backwards();
+    //return (or turn at another point);
   }
-  //Do Else if
+  
   //If the front wall exists but there are paths
   if(sensorSum || list.center){
     if(preventMultipleNodes){
       //Let the robot move just a tiny bit
-      delay(200);
+      delay(750);
+      //Change 0 to distance once rotary sensor is hooked up
       addNode(0, data, list);
     }
   }
-
-  //True if there is a wall
 }
 
-//TODO Make code that will center the vehicle in the maze, ie leftSensorData == rightSensorData.
-//This is important to ensure that turning and distance measurements are consistent because we need low percent error
+//This is code that will center the vehicle in the maze, ie leftSensorData == rightSensorData.
+//This is important to ensure that turning and distance measurements are consistent, and WE DON'T RUN INTO A WALL
 void centerRobot(SensorData &data){
   int difference;
   difference = data.sonarLeft - data.sonarRight;
@@ -320,8 +336,14 @@ void centerRobot(SensorData &data){
   else if(difference < -1){
     realign(data.sonarRight, data.sonarLeft);
   }
+  else{
+      moveRobot("forward", 175);
+  }
 }
 
+//If this function is finished, it will be used to figure out which character to return when turing.
+//For example, if turn='l' and direction='r', then the function would return 'c' for center.
+//Used for storing the direction in the node, and for the robot to be able to travel backwards
 char returnDirection(char turn, char direction){
   char turns[4] = {'c', 'r', 'c', 'l'};
   //if(direction == 'f'){
@@ -334,6 +356,7 @@ void setup(){
   Serial.begin(9600);
   pinMode(leftMotorBow, OUTPUT);
   pinMode(rightMotorBow, OUTPUT);
+  //This is actually the buzzer
   pinMode(eleMotorUp, OUTPUT);
 }
 
@@ -342,23 +365,23 @@ void loop(){
   SensorData data;
   refreshSensorData(data);
   
-  //Creates 1st Pointer and Maze Object
-  Node *headDaddy = new Node(0, data, nullptr, 'b');
-  Node *firstRealBro = new Node(0, data, headDaddy, 'c');
+  //Creates 1st and 2nd Pointer and Maze Object
+  Node *headNode = new Node(0, data, nullptr, 'b');
+  Node *firstRealNode = new Node(0, data, headNode, 'c');
 
-  Maze *maze = new Maze(headDaddy, firstRealBro);
+  Maze *maze = new Maze(headNode, firstRealNode);
 
   //Push first node onto path
-  maze->path.push(headDaddy);
+  maze->path.push(headNode);
 
-  Serial.println("Howdy");
   moveRobot("forward", 175);
   delay(500);
 
   //We don't have anything that will stop it, it will hopefully just get out of the maze
   while(1){
     refreshSensorData(data);
-    
+
+    //Serial.print is essentially but for Arduino. Open up Serial Monitor to see the output
     Serial.print("Left  ");
     Serial.println(data.sonarLeft);
     
@@ -374,7 +397,7 @@ void loop(){
   } 
 }
 
-//In case we need the CS 130 lab delay function, idk if we do though
+//Custom made delay function that allows you to run stuff during the delay
 void myDelay(int ms){
   int start_ms = millis();
   int current_ms;
@@ -387,8 +410,8 @@ void myDelay(int ms){
   }
 }
 
-//Outputs node details
-void Maze::clout(){
+//Outputs node details, useful for debugging
+void Maze::nodeOut(){
   std::map <Node *, std::set<Node *>>::iterator literator;
   std::set <Node *>::iterator siterator;
   for(literator = adj.begin(); literator != adj.end(); literator++){
@@ -400,97 +423,3 @@ void Maze::clout(){
     }
   }
 }
-
-/*
-int buzzer_pin = 7;
-
-struct MusicStruct {
-  int c = 262;
-  int d = 294;
-  int e = 330;
-  int f = 349;
-  int g = 392;
-  int a = 440;
-  int b = 494;
-  int c2 = 523;
-  int d2 = 587;
-  int e2 = 659;
-  int f2 = 370;
-
-};
-
-MusicStruct Music;
-
-struct LengthStruct {
-  float eighth = .5;
-  float quarter = 0.25;
-  float three_quarter = 0.75;
-  float half = .5;
-  float one = 1.0;
-  float two = 2.0;
-  float two_half = 2.5;
-  float three = 3;
-  float four = 4;
-};
-
-LengthStruct Length;
-
-int tempo = 400;
-
-
-
-void setTone(int pin, int note, int duration) {
-  tone(pin, note, duration);
-  delay(duration);
-  noTone(pin);
-}
-
-void playRockyTop() {
-  //1
-  setTone(buzzer_pin, Music.a, tempo * Length.one);
-  setTone(buzzer_pin, Music.a, tempo * Length.one);
-  setTone(buzzer_pin, Music.a, tempo * Length.one);
-  setTone(buzzer_pin, Music.a, tempo * Length.one);
-
-  setTone(buzzer_pin, Music.b, tempo * Length.one);
-  setTone(buzzer_pin, Music.b, tempo * Length.one);
-
-  setTone(buzzer_pin, Music.a, tempo * Length.half);
-  setTone(buzzer_pin, Music.f2, tempo * Length.half);
-
-  setTone(buzzer_pin, Music.d, tempo * Length.one);
-  setTone(buzzer_pin, Music.d, tempo * Length.one);
-
-  setTone(buzzer_pin, Music.d, tempo * Length.half);
-  setTone(buzzer_pin, Music.d, tempo * Length.half);
-
-  setTone(buzzer_pin, Music.e, tempo * Length.half);
-  setTone(buzzer_pin, Music.d, tempo * Length.half);
-  setTone(buzzer_pin, Music.e, tempo * Length.one);
-
-  setTone(buzzer_pin, Music.f2, tempo * Length.four);
-
-  setTone(buzzer_pin, Music.a, tempo * Length.one);
-  setTone(buzzer_pin, Music.a, tempo * Length.one);
-  setTone(buzzer_pin, Music.a, tempo * Length.one);
-  setTone(buzzer_pin, Music.a, tempo * Length.one);
-
-
-  setTone(buzzer_pin, Music.b, tempo * Length.one);
-  setTone(buzzer_pin, Music.b, tempo * Length.one);
-
-  setTone(buzzer_pin, Music.a, tempo * Length.half);
-  setTone(buzzer_pin, Music.f2, tempo * Length.half);
-
-  setTone(buzzer_pin, Music.d, tempo * Length.one);
-  setTone(buzzer_pin, Music.d, tempo * Length.one);
-  setTone(buzzer_pin, Music.d, tempo * Length.one);
-
-  setTone(buzzer_pin, Music.f2, tempo * Length.eighth);
-  setTone(buzzer_pin, Music.f2, tempo * Length.eighth);
-  setTone(buzzer_pin, Music.f2, tempo * Length.eighth);
-  setTone(buzzer_pin, Music.e, tempo * Length.eighth);
-
-  setTone(buzzer_pin, Music.d, tempo * Length.four);
-}
-*/
