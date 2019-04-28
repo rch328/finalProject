@@ -1,19 +1,39 @@
-int prevState;
+/* Madeline Phillips
+ * 4/25/2019
+ * Morse Code Translator
+ * Description: This program accepts button press input from
+ * an Arduino and analyzes both the length of the button presses
+ * and the length between button presses to interpret morse code
+ * input into strings, which are output to the Serial Monitor.
+ */
+
+// Global Variables & Descriptions
+/* prevState is used to keep track of whether of not the button has been pressed 
+ * yet. Is only relevant for the first press to keep the program from starting 
+ * the spacing timer before it's necessary. */
+int prevState; 
+/* prevtime is used to track the time the button has been pressed down
+ * to determine whether the press was a dot or a dash. */
 unsigned long prevtime;
+/* offtime and savedtime are used in conjunction used to track the time after the 
+ * previous button press to figure out whether to start a new letter or a new word. */
 unsigned long offtime;
+unsigned long savedtime;
+/* dash is set to true if button is held down long enough. Checked later when composing letter */
 bool dash = false;
+/* benchmarked is used to check if the initial time has been saved yet. 
+ * The initial time is millis() the instant the button is first pressed. */
 bool benchmarked = false;
-int buttonState;
-bool inLetter = false;
+/* inWord and inSentence are used to determine whether letter composition behavior.
+ * They're set based on the space between button presses. */
 bool inWord = false;
 bool inSentence = false;
-unsigned long savedtime;
-String letter;
-bool checked = false;
-//char alphabet[26] = "abcdefghijklmnopqrstuvwxyz";
-//char alphabet[] = {'a'};
-bool printed = false; bool printed2 = false; bool printed3 = false;
+/* letter is the string to which the raw morse code is appended. */
+String letter; // collects raw morse
 
+/* I couldn't find a map/dictionary data structure that worked with Arduino,
+ * so I made my own map: an array of structs. O(n) search is kinda gross, but
+ * here we are. It contains the alphabet and integers 0-9. */
 struct Morse {
   String raw; // dashes and dots
   char letter; // alphanumeric values
@@ -53,129 +73,84 @@ struct Morse {
   {"--...", '7'},
   {"---..", '8'},
   {"----.", '9'},
-  {"-----", '0'},
+  {"-----", '0'}
 };
 
-
 void setup() {
-  // put your setup code here, to run once:
+  // this runs once
+  // Serial.begin is used to print to Serial Monitor
   Serial.begin(9600);
-  // LED's
-  pinMode(13, OUTPUT);
-  // Buttons
+  // Button
   pinMode(3, INPUT);
-  //pinMode(A1, INPUT);
 }
 
-// LOW = ON
-// HIGH = OFF
 void loop() {
   // put your main code here, to run repeatedly:
-  // pinMode(13, LOW);
-  // delay(10000);
-
-  prevState = 1;
-  benchmarked = false;
+  prevState = 1; // button is up
+  benchmarked = false; // time has never been saved
   while (!digitalRead(3)) {
-    printed = false; printed2 = false; printed3 = false;
-
-
-
     if (!benchmarked) {
+      // if time hasn't been saved, save it
       prevtime = millis();
       benchmarked = true;
     }
-
-    // Serial.print("hi");
-    // dash = false;
-    if ((millis() - prevtime) > 500 && !dash) {
-      //Serial.print("dash\n");
-      //Serial.print("-");
-      //Serial.print("in letter dash\n");
+    // if button has been held long enough to qualify for a dash, set the flag
+    if ((millis() - prevtime) > 500) { 
       dash = true;
       break;
     }
-    prevState = 0;
-  }
+    prevState = 0; // button has been pressed
+  } // end while(!digitalRead(3))
 
+  // button has been released
   if (digitalRead(3) && prevState == 0) {
+    // save the time the instant the button is released to see how long it stays up
     offtime = millis();
-    if (inLetter) {
-      if (!dash) {
-        letter.concat('.');
-        Serial.print('.');
-      }
-      else {
-        letter.concat('-');
-        Serial.print('-');
-      }
-      dash = false;
-    }
-    if (inWord || inSentence) { // SENTENCE SHOULD HAVE ITS OWN THING
-      // use map to print letter
-      Serial.print("morse = ");
-      Serial.print(letter);
+
+    if (inWord) {
+      // if the morse for the letter is complete, find the letter and print it out
       for (int i = 0; i < 36; i++) {
         if (alphabet[i].raw == letter) {
-          Serial.print("\nletter = ");
           Serial.print(alphabet[i].letter);
-          //Serial.print("\n");
+          Serial.print("\n");
           break;
         }
       }
-      Serial.print("\n\n");
+      // clear letter
       letter = "";
     }
-  }
-  while (digitalRead(3) && prevState == 0) {
-
-    if ((millis() - offtime) < 2000) {
-      if (!printed) {
-        //Serial.print("in letter\n");
-        printed = true;
-      }
-      inLetter = true;
-      inWord = false;
-      inSentence = false;
+    // if between words, add a space
+    if (inSentence) {
+      Serial.print(" ");
     }
+    // construct letter, one dot/dash at a time
+    if (!dash) {
+      letter.concat('.');
+      Serial.print('.');
+    }
+    else {
+      letter.concat('-');
+      Serial.print('-');
+    }
+    dash = false; // reset dash flag
+  } // end if
+
+  // begin actually caring about how long the button has been up and setting flags accordingly
+  while (digitalRead(3) && prevState == 0) {
     savedtime = millis() - offtime;
+    // letter is complete. print and start new.
     if (savedtime < 4000 && savedtime > 2000) {
-      if (!printed2) {
-        //Serial.print("in word\n");
-        printed2 = true;
-      }
-      inLetter = false;
       inWord = true;
       inSentence = false;
     }
     savedtime = millis() - offtime;
+    // word is complete. print a space.
     if (savedtime > 4000) {
-      if (!printed3) {
-        //Serial.print("in sentence\n");
-        printed3 = true;
-      }
-      inLetter = false;
       inWord = false;
       inSentence = true;
     }
-    checked = false;
-    //prevState = 1; // does this matter?
-    /*if((millis() - offtime) > 1500){
-       Serial.print("out of letter. in word.");
-       // process and print letter
-      }
-      else if (!dash) {
-      //Serial.print("dot\n");
-      //Serial.print(".");
-      Serial.print("in letter dot\n");
-      // add dot to letter string
-      }
-      dash = false;
-      prevState = 1;*/
-  }
-
+  } // end while
 
 } // end loop
-
 
 
